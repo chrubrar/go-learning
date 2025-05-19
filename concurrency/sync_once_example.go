@@ -1,4 +1,4 @@
-package main
+package concurrency
 
 import (
 	"fmt"
@@ -6,20 +6,22 @@ import (
 	"time"
 )
 
-// Config represents a configuration that should only be loaded once
+// Config demonstrates the use of sync.Once for lazy initialization.
 type Config struct {
 	settings map[string]string
 	once     sync.Once
 }
 
+// NewConfig creates a new Config instance with an initialized settings map.
 func NewConfig() *Config {
 	return &Config{
 		settings: make(map[string]string),
 	}
 }
 
+// LoadSettings loads configuration settings exactly once, even when called
+// multiple times or from multiple goroutines.
 func (c *Config) LoadSettings() {
-	// sync.Once ensures this code runs exactly once, even if called from multiple goroutines
 	c.once.Do(func() {
 		fmt.Println("Loading settings... (this should print only once)")
 		// Simulate some heavy initialization
@@ -33,7 +35,14 @@ func (c *Config) LoadSettings() {
 	fmt.Println("Settings ready to use")
 }
 
-func main() {
+// GetSetting returns the value for a given setting key.
+func (c *Config) GetSetting(key string) string {
+	return c.settings[key]
+}
+
+// DemonstrateSyncOnce shows how sync.Once ensures initialization happens exactly once
+// even when called from multiple goroutines.
+func DemonstrateSyncOnce() {
 	config := NewConfig()
 	var wg sync.WaitGroup
 	
@@ -45,10 +54,9 @@ func main() {
 			fmt.Printf("Goroutine %d attempting to load settings...\n", id)
 			config.LoadSettings()
 			// Read a setting to prove it's loaded
-			fmt.Printf("Goroutine %d sees database=%s\n", id, config.settings["database"])
+			fmt.Printf("Goroutine %d sees database=%s\n", id, config.GetSetting("database"))
 		}(i)
 	}
 	
 	wg.Wait()
-	fmt.Println("\nFinal settings:", config.settings)
 }
